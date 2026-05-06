@@ -166,6 +166,30 @@ button.active {
   margin-top: 16px;
 }
 
+.history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.history-header h2 {
+  margin: 0;
+}
+
+.download-btn {
+  background: #0f75bd;
+  color: #fff;
+  border-color: #0f75bd;
+  font-weight: 600;
+}
+
+.download-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .record-list {
   display: grid;
   gap: 10px;

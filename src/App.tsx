@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+ï»¿import { useMemo, useState } from 'react';
 import './index.css';
 
 type BoltDiameter = 'M12' | 'M16' | 'M20' | 'M22' | 'M24' | 'M27' | 'M30';
@@ -106,6 +106,11 @@ function loadRecords(): SavedRecord[] {
   }
 }
 
+function toCsvCell(value: string | number): string {
+  const text = String(value).replace(/"/g, '""');
+  return `"${text}"`;
+}
+
 export default function App() {
   const [diameter, setDiameter] = useState<BoltDiameter>('M20');
   const [type, setType] = useState<BoltType>('torsia');
@@ -150,6 +155,59 @@ export default function App() {
     const updated = records.filter((r) => r.id !== id);
     setRecords(updated);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+  };
+
+  const downloadCsv = () => {
+    if (records.length === 0) return;
+
+    const headers = [
+      'name',
+      'note',
+      'createdAt',
+      'diameter',
+      'type',
+      'p1',
+      'p2',
+      'p3',
+      'gripLength',
+      'addLength',
+      'theoreticalLength',
+      'selectedLength',
+      'surplusLength',
+      'threadCrests',
+    ];
+
+    const rows = records.map((r) => [
+      r.name,
+      r.note,
+      r.createdAt,
+      r.diameter,
+      r.type === 'torsia' ? 'S10T (Torsia)' : 'F10T (Hex)',
+      r.p1,
+      r.p2,
+      r.p3,
+      r.result.gripLength.toFixed(1),
+      r.result.addLength.toFixed(1),
+      r.result.theoreticalLength.toFixed(1),
+      r.result.selectedLength,
+      r.result.surplusLength.toFixed(1),
+      r.result.threadCrests.toFixed(2),
+    ]);
+
+    const csvBody = [
+      headers.map(toCsvCell).join(','),
+      ...rows.map((row) => row.map(toCsvCell).join(',')),
+    ].join('\n');
+
+    const blob = new Blob([`\uFEFF${csvBody}`], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `bolt-records-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const threadOk = result ? result.threadCrests >= 1 && result.threadCrests <= 6 : false;
@@ -212,7 +270,7 @@ export default function App() {
                 <div><strong>Theoretical</strong><span>{result.theoreticalLength.toFixed(1)} mm</span></div>
                 <div><strong>Surplus</strong><span>{result.surplusLength.toFixed(1)} mm</span></div>
                 <div><strong>Thread crests</strong><span className={threadOk ? 'ok' : 'warn'}>{result.threadCrests.toFixed(2)}</span></div>
-                <div><strong>Rule</strong><span>{spec.increment === 5 ? '2¡õ / 3-7¡÷5 / 8¡ô (mm)' : 'Nearest 10 mm'}</span></div>
+                <div><strong>Rule</strong><span>{spec.increment === 5 ? '2â†“ / 3-7â†’5 / 8â†‘ (mm)' : 'Nearest 10 mm'}</span></div>
               </div>
             </>
           )}
@@ -220,7 +278,10 @@ export default function App() {
       </main>
 
       <section className="card history-card">
-        <h2>Saved Records ({records.length})</h2>
+        <div className="history-header">
+          <h2>Saved Records ({records.length})</h2>
+          <button className="download-btn" onClick={downloadCsv} disabled={records.length === 0}>Download CSV</button>
+        </div>
         {records.length === 0 ? (
           <p className="empty">No saved data yet.</p>
         ) : (
